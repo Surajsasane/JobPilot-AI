@@ -3,11 +3,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from app.core.config import settings
 from app.db import Base, engine
+from app.job_catalog import DEMO_JOBS
 from app.routers import auth, resumes
 
 Base.metadata.create_all(bind=engine)
-
-app = FastAPI(title=settings.app_name, version="0.2.0")
+app = FastAPI(title=settings.app_name, version="0.3.0")
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 app.include_router(auth.router, prefix=f"{settings.api_prefix}/auth", tags=["Authentication"])
 app.include_router(resumes.router, prefix=f"{settings.api_prefix}/resumes", tags=["Resumes"])
@@ -16,11 +16,6 @@ class JobSearch(BaseModel):
     keywords: list[str] = Field(default_factory=list)
     location: str | None = None
     remote_only: bool = True
-
-DEMO_JOBS = [
-    {"id": "demo-1", "title": "Python Automation Engineer", "company": "Example Tech", "location": "Remote, India", "source": "Demo", "url": "https://example.com/jobs/1", "description": "Python, APIs, Selenium, SQL and workflow automation."},
-    {"id": "demo-2", "title": "Data Analyst", "company": "Sample Analytics", "location": "Pune, India", "source": "Demo", "url": "https://example.com/jobs/2", "description": "SQL, Python, pandas, dashboards and data quality."},
-]
 
 @app.get("/health")
 def health():
