@@ -1,0 +1,36 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
+from app.core.config import settings
+
+app = FastAPI(title=settings.app_name, version="0.1.0")
+app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+
+class JobSearch(BaseModel):
+    keywords: list[str] = Field(default_factory=list)
+    location: str | None = None
+    remote_only: bool = True
+
+DEMO_JOBS = [
+    {"id": "demo-1", "title": "Python Automation Engineer", "company": "Example Tech", "location": "Remote, India", "source": "Demo", "url": "https://example.com/jobs/1", "description": "Python, APIs, Selenium, SQL and workflow automation."},
+    {"id": "demo-2", "title": "Data Analyst", "company": "Sample Analytics", "location": "Pune, India", "source": "Demo", "url": "https://example.com/jobs/2", "description": "SQL, Python, pandas, dashboards and data quality."},
+]
+
+@app.get("/health")
+def health():
+    return {"status": "ok", "app": settings.app_name, "environment": settings.environment}
+
+@app.get(f"{settings.api_prefix}/jobs")
+def list_demo_jobs():
+    return {"items": DEMO_JOBS, "count": len(DEMO_JOBS), "note": "Demo data only; connect permitted job sources for live listings."}
+
+@app.post(f"{settings.api_prefix}/jobs/match")
+def match_demo_jobs(search: JobSearch):
+    terms = [term.lower() for term in search.keywords]
+    ranked = []
+    for job in DEMO_JOBS:
+        haystack = f"{job['title']} {job['description']} {job['location']}".lower()
+        score = sum(1 for term in terms if term in haystack)
+        ranked.append({**job, "match_score": round(score / max(len(terms), 1) * 100) if terms else 0})
+    ranked.sort(key=lambda item: item["match_score"], reverse=True)
+    return {"items": ranked}
