@@ -8,6 +8,7 @@ from app.db import get_db
 from app.dependencies import get_current_user
 from app.models import Resume, User
 from app.schemas import ResumeResponse
+from app.services.resume_analyzer import extract_resume_text, extract_skills, match_jobs
 
 router = APIRouter()
 ALLOWED_TYPES = {".pdf": "application/pdf", ".doc": "application/msword", ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"}
@@ -49,3 +50,15 @@ async def upload_resume(file: UploadFile = File(...), current_user: User = Depen
 def list_resumes(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     items = db.query(Resume).filter(Resume.user_id == current_user.id).order_by(Resume.id.desc()).all()
     return [ResumeResponse(id=item.id, original_filename=item.original_filename, content_type=item.content_type, size_bytes=item.size_bytes, created_at=(item.created_at.replace(tzinfo=timezone.utc) if item.created_at.tzinfo is None else item.created_at).isoformat()) for item in items]
+
+@router.post("/{resume_id}/analyze")
+def analyze_resume(resume_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    resume = db.query(Resume).filter(Resume.id == resume_id, Resume.user_id == current_user.id).first()
+    if resume is None:
+        raise HTTPException(status_code=404, detail="Resume not found")
+    file_path = Path(settings.upload_dir) / resume.stored_filename
+    if not file_path.is_file():
+        raise HTTPException(status_code=404, detail="Resume file is missing from storage")
+    text = extract_resume_text(file_path)
+    skills = extract_skills(text)
+    return {"resume_id": resume.id, "filename": resume.original_filename, "skills": skills, "skill_count": len(skills), "matched_jobs": match_jobs(skills), "note": "Keyword-based extraction from selectable PDF/DOCX text. Review results; this is not an AI assessment."}
