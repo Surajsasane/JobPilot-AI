@@ -1,72 +1,87 @@
 # JobPilot AI
 
-A job-search assistant that helps users organize preferences, discover jobs from permitted sources, compare roles with their resumes, and prepare application drafts.
+A job-search assistant for organizing job preferences, discovering opportunities from permitted sources, matching roles, and preparing applications for user review.
 
-## MVP status
+## Current MVP features
 
-This repository starts with a safe, extensible foundation:
-- FastAPI backend with health and demo job endpoints
-- React + Vite frontend scaffold
-- PostgreSQL configuration template
-- Clear separation between job discovery, matching, and application preparation
+- User registration and login (JWT access tokens)
+- Password hashing with Argon2
+- User profile endpoint
+- Private resume upload (PDF, DOC, DOCX; maximum 5 MB by default)
+- Resume list scoped to the signed-in user
+- SQLAlchemy database models for users and resumes
+- SQLite for simple local development; PostgreSQL supported through configuration
+- React dashboard with registration, login, resume upload, and demo job matching
 
-**Important:** Job discovery integrations must use official APIs, feeds, or sources whose terms permit the intended access. This starter does not bypass CAPTCHAs, login controls, or anti-bot systems, and it does not submit applications automatically.
+**Safety:** Job-source integrations must use official APIs, feeds, or sources whose terms permit the intended access. This starter does not bypass CAPTCHAs, login controls, or anti-bot systems, and it does not automatically submit applications.
 
-## Project structure
+## Run locally on Windows
 
-```
-backend/
-  app/
-    main.py
-    core/config.py
-  requirements.txt
-  .env.example
-frontend/
-  index.html
-  package.json
-  src/App.jsx
-  src/main.jsx
-  src/style.css
-docker-compose.yml
-.gitignore
-```
+### 1. Backend
 
-## Run backend (Python 3.10+)
+Open CMD in the project folder:
 
-```bash
+```bat
 cd backend
 python -m venv .venv
-# Windows: .venv\\Scripts\\activate
-# macOS/Linux: source .venv/bin/activate
+.venv\Scripts\activate
+copy .env.example .env
 pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
-API docs: http://127.0.0.1:8000/docs
+The backend runs at http://127.0.0.1:8000 and creates a local SQLite database file named `jobpilot.db`. Uploaded resumes are stored in `backend/uploads`.
 
-## Run frontend (Node.js 20+)
+API documentation: http://127.0.0.1:8000/docs
 
-```bash
+### 2. Frontend
+
+Open a second CMD window in the project folder:
+
+```bat
 cd frontend
 npm install
 npm run dev
 ```
 
-Frontend: http://localhost:5173
+Open http://localhost:5173
 
-## Configuration
+Register an account in the dashboard, sign in, and upload a PDF, DOC, or DOCX resume.
 
-Copy `backend/.env.example` to `backend/.env` and configure your own local values. Never commit passwords, API keys, OAuth tokens, or production secrets.
+## Main API endpoints
+
+- `POST /api/v1/auth/register` — create an account
+- `POST /api/v1/auth/login` — sign in and receive a JWT
+- `GET /api/v1/auth/me` — current signed-in user (Bearer token required)
+- `POST /api/v1/resumes/upload` — upload a resume (Bearer token required)
+- `GET /api/v1/resumes/` — list your own resumes (Bearer token required)
+- `GET /health` — backend health check
+
+## PostgreSQL
+
+For local SQLite, keep the example `DATABASE_URL`. To use PostgreSQL, set a PostgreSQL SQLAlchemy URL in `backend/.env`, for example:
+
+```env
+DATABASE_URL=postgresql+psycopg://USERNAME:PASSWORD@localhost:5432/jobpilot
+```
+
+The `docker-compose.yml` file includes PostgreSQL and Redis services. Start them with `docker compose up -d`, then configure the PostgreSQL URL above.
+
+## Security notes before deployment
+
+- Replace `SECRET_KEY` with a long, randomly generated secret.
+- Never commit `.env`, passwords, API keys, OAuth tokens, or production secrets.
+- Use HTTPS in production and configure CORS for your real frontend domain.
+- Configure private, durable object storage for resumes; local disk storage is only for development.
+- Add email verification, password reset, rate limiting, malware scanning, and database migrations before production.
+- Keep uploaded resume access private and enforce tenant ownership on every endpoint.
 
 ## Roadmap
 
-1. User authentication and tenant isolation
-2. Resume upload and structured profile extraction
-3. Job source adapters using permitted APIs/feeds
-4. Resume-to-job matching and saved searches
-5. Application draft generation and user review
-6. Subscription billing and production deployment
+1. Resume text extraction and profile parsing
+2. Saved job preferences and scheduled job discovery
+3. Permitted job-source adapters and duplicate detection
+4. Better resume-to-job matching and application tracking
+5. Subscription billing and production deployment
 
-## License
-
-This project is an original starter implementation. A license will be selected before public commercial distribution.
+This is an MVP foundation, not yet a production-ready paid SaaS.
