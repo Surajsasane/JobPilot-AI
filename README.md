@@ -5,13 +5,16 @@ A job-search assistant for organizing job preferences, discovering opportunities
 ## Current MVP features
 
 - User registration and login (JWT access tokens)
-- Password hashing with Argon2
+- Argon2 password hashing
 - User profile endpoint
-- Private resume upload (PDF, DOC, DOCX; maximum 5 MB by default)
+- Private resume upload (PDF, DOC, DOCX; 5 MB default limit)
 - Resume list scoped to the signed-in user
-- SQLAlchemy database models for users and resumes
-- SQLite for simple local development; PostgreSQL supported through configuration
-- React dashboard with registration, login, resume upload, and demo job matching
+- PDF/DOCX text extraction and keyword-based skill detection
+- Resume-to-demo-job matching with match scores
+- SQLAlchemy database models; SQLite local setup and PostgreSQL support
+- React dashboard for account creation, login, resume upload, skill analysis, and job matches
+
+**Important limitations:** Job listings are sample/demo data, not live vacancies. Resume skill extraction currently works with selectable-text PDF and DOCX files. Scanned-image PDFs need OCR, and legacy .doc files must be converted to PDF or DOCX for analysis. The matching logic is keyword-based, not an AI model.
 
 **Safety:** Job-source integrations must use official APIs, feeds, or sources whose terms permit the intended access. This starter does not bypass CAPTCHAs, login controls, or anti-bot systems, and it does not automatically submit applications.
 
@@ -30,9 +33,10 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
-The backend runs at http://127.0.0.1:8000 and creates a local SQLite database file named `jobpilot.db`. Uploaded resumes are stored in `backend/uploads`.
-
+Backend: http://127.0.0.1:8000  
 API documentation: http://127.0.0.1:8000/docs
+
+The backend creates a local SQLite database named `jobpilot.db`. Uploaded resumes are stored in `backend/uploads`.
 
 ### 2. Frontend
 
@@ -44,44 +48,48 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:5173
+Frontend: http://localhost:5173
 
-Register an account in the dashboard, sign in, and upload a PDF, DOC, or DOCX resume.
+Register, sign in, upload a PDF or DOCX resume, then click **Analyze & match jobs** beside the uploaded resume.
 
-## Main API endpoints
+## API endpoints
 
-- `POST /api/v1/auth/register` — create an account
-- `POST /api/v1/auth/login` — sign in and receive a JWT
-- `GET /api/v1/auth/me` — current signed-in user (Bearer token required)
-- `POST /api/v1/resumes/upload` — upload a resume (Bearer token required)
-- `GET /api/v1/resumes/` — list your own resumes (Bearer token required)
 - `GET /health` — backend health check
+- `POST /api/v1/auth/register` — create account
+- `POST /api/v1/auth/login` — sign in and receive JWT
+- `GET /api/v1/auth/me` — current user (Bearer token required)
+- `POST /api/v1/resumes/upload` — upload resume (Bearer token required)
+- `GET /api/v1/resumes/` — list your resumes (Bearer token required)
+- `POST /api/v1/resumes/{resume_id}/analyze` — extract skills and rank demo jobs (Bearer token required)
+- `GET /api/v1/jobs` — demo jobs
+- `POST /api/v1/jobs/match` — keyword match against demo jobs
 
 ## PostgreSQL
 
-For local SQLite, keep the example `DATABASE_URL`. To use PostgreSQL, set a PostgreSQL SQLAlchemy URL in `backend/.env`, for example:
+For local SQLite, keep the example `DATABASE_URL`. To use PostgreSQL, set a SQLAlchemy URL in `backend/.env`:
 
 ```env
 DATABASE_URL=postgresql+psycopg://USERNAME:PASSWORD@localhost:5432/jobpilot
 ```
 
-The `docker-compose.yml` file includes PostgreSQL and Redis services. Start them with `docker compose up -d`, then configure the PostgreSQL URL above.
+Start the included database services with `docker compose up -d` if Docker is installed.
 
-## Security notes before deployment
+## Security before production
 
-- Replace `SECRET_KEY` with a long, randomly generated secret.
+- Replace `SECRET_KEY` with a long random secret and keep it private.
 - Never commit `.env`, passwords, API keys, OAuth tokens, or production secrets.
-- Use HTTPS in production and configure CORS for your real frontend domain.
-- Configure private, durable object storage for resumes; local disk storage is only for development.
-- Add email verification, password reset, rate limiting, malware scanning, and database migrations before production.
-- Keep uploaded resume access private and enforce tenant ownership on every endpoint.
+- Use HTTPS and configure CORS for the deployed frontend domain.
+- Use private durable object storage for resumes; local disk is development-only.
+- Add email verification, password reset, rate limiting, malware scanning, and database migrations.
+- Add retention/deletion controls and verify tenant ownership on every file operation.
+- Run security and integration tests before accepting paying customers.
 
 ## Roadmap
 
-1. Resume text extraction and profile parsing
-2. Saved job preferences and scheduled job discovery
-3. Permitted job-source adapters and duplicate detection
-4. Better resume-to-job matching and application tracking
-5. Subscription billing and production deployment
+1. OCR for scanned resumes and improved skill extraction
+2. User job preferences and scheduled discovery
+3. Real job-source adapters using permitted APIs/feeds
+4. Application tracking and user-reviewed application drafts
+5. Razorpay subscriptions and production deployment
 
-This is an MVP foundation, not yet a production-ready paid SaaS.
+This is a development MVP, not yet a production-ready paid SaaS.
