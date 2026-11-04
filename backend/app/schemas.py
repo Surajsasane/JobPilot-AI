@@ -87,3 +87,32 @@ class JobPreferenceUpdate(BaseModel):
 
 class JobPreferenceResponse(JobPreferenceUpdate):
     model_config = ConfigDict(from_attributes=True)
+
+
+APPLICATION_STATUSES = ("saved", "applied", "interview", "rejected", "offer")
+
+class ApplicationCreate(BaseModel):
+    source: str = Field(default="demo", max_length=40)
+    title: str = Field(min_length=1, max_length=255)
+    company: str = Field(min_length=1, max_length=255)
+    location: str = Field(default="", max_length=255)
+    job_url: str = Field(min_length=1, max_length=1000)
+    status: str = Field(default="saved", pattern="^(saved|applied|interview|rejected|offer)$")
+    notes: str = Field(default="", max_length=4000)
+
+class ApplicationUpdate(BaseModel):
+    status: str | None = Field(default=None, pattern="^(saved|applied|interview|rejected|offer)$")
+    notes: str | None = Field(default=None, max_length=4000)
+
+class ApplicationResponse(BaseModel):
+    id: int
+    source: str
+    title: str
+    company: str
+    location: str
+    job_url: str
+    status: str
+    notes: str
+    created_at: str
+    updated_at: str
+    model_config = ConfigDict(from_attributes=True)
