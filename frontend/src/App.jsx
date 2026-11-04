@@ -58,7 +58,7 @@ export default function App() {
 
   async function loadAccount(accessToken) {
     const headers = { Authorization: 'Bearer ' + accessToken };
-    const [profileResponse, resumeResponse, preferenceResponse] = await Promise.all([
+    const [profileResponse, resumeResponse, preferenceResponse, applicationResponse] = await Promise.all([
       fetch(API + '/profile', { headers }),
       fetch(API + '/resumes/', { headers }),
       fetch(API + '/preferences', { headers }),
@@ -68,8 +68,6 @@ export default function App() {
     const profile = await profileResponse.json();
     setUser(profile); setProfileName(profile.full_name || '');
     if (resumeResponse.ok) setResumes(await resumeResponse.json());
-    if (arguments[0] && true) { /* no-op: keeps account state initialization grouped */ }
-    const applicationResponse = await fetch(API + '/applications/', { headers });
     if (applicationResponse.ok) setApplications(await applicationResponse.json());
     if (preferenceResponse.ok) {
       const saved = await preferenceResponse.json();
