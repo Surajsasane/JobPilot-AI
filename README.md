@@ -12,7 +12,7 @@ A job-search assistant for organizing job preferences, discovering opportunities
 - PDF/DOCX text extraction and keyword-based skill detection
 - Resume-to-demo-job matching with match scores
 - SQLAlchemy database models; SQLite local setup and PostgreSQL support
-- React dashboard for account creation, login, resume upload, skill analysis, and job matches
+- React dashboard for account creation, login, profile editing, job preferences, resume upload, skill analysis, job matches, and a user-specific application tracker
 
 **Important limitations:** Job listings are sample/demo data, not live vacancies. Resume skill extraction currently works with selectable-text PDF and DOCX files. Scanned-image PDFs need OCR, and legacy .doc files must be converted to PDF or DOCX for analysis. The matching logic is keyword-based, not an AI model.
 
@@ -30,15 +30,18 @@ python -m venv .venv
 .venv\Scripts\activate
 copy .env.example .env
 pip install -r requirements.txt
+alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
 Backend: http://127.0.0.1:8000  
 API documentation: http://127.0.0.1:8000/docs
 
-The backend creates a local SQLite database named `jobpilot.db`. Uploaded resumes are stored in `backend/uploads`.
+The migration command creates/updates the local SQLite database named `jobpilot.db`. Uploaded resumes are stored in `backend/uploads`.
 
 ### 2. Frontend
+
+Optional: copy `.env.example` to `.env` and set `VITE_API_URL` if the backend is not running at `http://127.0.0.1:8000/api/v1`.
 
 Open a second CMD window in the project folder:
 
@@ -58,6 +61,11 @@ Register, sign in, upload a PDF or DOCX resume, then click **Analyze & match job
 - `POST /api/v1/auth/register` — create account
 - `POST /api/v1/auth/login` — sign in and receive JWT
 - `GET /api/v1/auth/me` — current user (Bearer token required)
+- `GET /api/v1/profile` and `PATCH /api/v1/profile` — view/update your profile (Bearer token required)
+- `GET /api/v1/preferences` and `PUT /api/v1/preferences` — view/save your job preferences (Bearer token required)
+- `GET /api/v1/applications/` — list your tracked jobs (Bearer token required)
+- `POST /api/v1/applications/` — add a job to your tracker (Bearer token required)
+- `PATCH /api/v1/applications/{id}` — update status/notes (Bearer token required)
 - `POST /api/v1/resumes/upload` — upload resume (Bearer token required)
 - `GET /api/v1/resumes/` — list your resumes (Bearer token required)
 - `POST /api/v1/resumes/{resume_id}/analyze` — extract skills and rank demo jobs (Bearer token required)
@@ -80,7 +88,7 @@ Start the included database services with `docker compose up -d` if Docker is in
 - Never commit `.env`, passwords, API keys, OAuth tokens, or production secrets.
 - Use HTTPS and configure CORS for the deployed frontend domain.
 - Use private durable object storage for resumes; local disk is development-only.
-- Add email verification, password reset, rate limiting, malware scanning, and database migrations.
+- Add email verification, password reset, rate limiting, malware scanning, and run reviewed Alembic migrations during deployment.
 - Add retention/deletion controls and verify tenant ownership on every file operation.
 - Run security and integration tests before accepting paying customers.
 
