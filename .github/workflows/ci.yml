@@ -29,6 +29,9 @@ jobs:
           python-version: "3.12"
       - run: python -m pip install -r backend/requirements.txt
       - run: python -m compileall -q backend/app
+      - name: Apply database migrations on a clean SQLite database
+        working-directory: backend
+        run: alembic upgrade head
       - name: Import FastAPI app and configure ORM mappers
         working-directory: backend
         run: python -c "from app.main import app; from sqlalchemy.orm import configure_mappers; configure_mappers(); print(len(app.routes))"
