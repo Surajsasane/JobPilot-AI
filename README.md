@@ -30,13 +30,14 @@ python -m venv .venv
 .venv\Scripts\activate
 copy .env.example .env
 pip install -r requirements.txt
+alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
 Backend: http://127.0.0.1:8000  
 API documentation: http://127.0.0.1:8000/docs
 
-The backend creates a local SQLite database named `jobpilot.db`. Uploaded resumes are stored in `backend/uploads`.
+The migration command creates/updates the local SQLite database named `jobpilot.db`. Uploaded resumes are stored in `backend/uploads`.
 
 ### 2. Frontend
 
@@ -87,7 +88,7 @@ Start the included database services with `docker compose up -d` if Docker is in
 - Never commit `.env`, passwords, API keys, OAuth tokens, or production secrets.
 - Use HTTPS and configure CORS for the deployed frontend domain.
 - Use private durable object storage for resumes; local disk is development-only.
-- Add email verification, password reset, rate limiting, malware scanning, and database migrations.
+- Add email verification, password reset, rate limiting, malware scanning, and run reviewed Alembic migrations during deployment.
 - Add retention/deletion controls and verify tenant ownership on every file operation.
 - Run security and integration tests before accepting paying customers.
 
