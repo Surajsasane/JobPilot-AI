@@ -22,6 +22,7 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [profileName, setProfileName] = useState('');
   const [resumes, setResumes] = useState([]);
+  const [applications, setApplications] = useState([]);
   const [resumeFile, setResumeFile] = useState(null);
   const [analysis, setAnalysis] = useState(null);
   const [analyzingId, setAnalyzingId] = useState(null);
@@ -61,11 +62,15 @@ export default function App() {
       fetch(API + '/profile', { headers }),
       fetch(API + '/resumes/', { headers }),
       fetch(API + '/preferences', { headers }),
+      fetch(API + '/applications/', { headers }),
     ]);
     if (!profileResponse.ok) throw new Error('Session expired. Please sign in again.');
     const profile = await profileResponse.json();
     setUser(profile); setProfileName(profile.full_name || '');
     if (resumeResponse.ok) setResumes(await resumeResponse.json());
+    if (arguments[0] && true) { /* no-op: keeps account state initialization grouped */ }
+    const applicationResponse = await fetch(API + '/applications/', { headers });
+    if (applicationResponse.ok) setApplications(await applicationResponse.json());
     if (preferenceResponse.ok) {
       const saved = await preferenceResponse.json();
       const next = { ...emptyPreferences, ...saved };
@@ -81,7 +86,7 @@ export default function App() {
   useEffect(() => { loadJobs(); }, []);
   useEffect(() => {
     if (!token) {
-      setUser(null); setResumes([]); setPreferences(emptyPreferences);
+      setUser(null); setResumes([]); setApplications([]); setPreferences(emptyPreferences);
       setPreferenceText({ target_roles: '', locations: '', skills: '' });
       return;
     }
@@ -150,6 +155,39 @@ export default function App() {
     finally { setSavingPreferences(false); }
   }
 
+
+  async function trackJob(job) {
+    setError(''); setNotice('');
+    try {
+      const response = await fetch(API + '/applications/', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          source: 'demo', title: job.title, company: job.company,
+          location: job.location || '', job_url: job.url, status: 'saved', notes: '',
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || 'Could not save this job');
+      setApplications((items) => [data, ...items]);
+      setNotice('Job added to your application tracker.');
+    } catch (err) { setError(err.message || 'Could not save this job.'); }
+  }
+
+  async function updateApplicationStatus(id, nextStatus) {
+    try {
+      const response = await fetch(API + '/applications/' + id, {
+        method: 'PATCH',
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: nextStatus }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || 'Could not update application');
+      setApplications((items) => items.map((item) => item.id === id ? data : item));
+      setNotice('Application status updated.');
+    } catch (err) { setError(err.message || 'Could not update application.'); }
+  }
+
   async function uploadResume(event) {
     event.preventDefault(); if (!resumeFile || !token) return;
     setError(''); setNotice('');
@@ -180,7 +218,7 @@ export default function App() {
   }
 
   function logout() {
-    localStorage.removeItem('jobpilot_token'); setToken(''); setUser(null); setAnalysis(null);
+    localStorage.removeItem('jobpilot_token'); setToken(''); setUser(null); setAnalysis(null); setApplications([]);
     setNotice('You have been signed out.');
   }
 
@@ -266,12 +304,23 @@ export default function App() {
 
       {notice && <div className="notice">{notice}</div>}
       {error && <div className="error">{error}</div>}
+      {user && <section className="account-card tracker-card">
+        <div className="eyebrow"><BriefcaseBusiness size={14} /> APPLICATION TRACKER</div>
+        <h2>Your tracked jobs</h2>
+        {applications.length ? <div className="application-list">{applications.map((item) => <article className="application-row" key={item.id}>
+          <div className="application-info"><strong>{item.title}</strong><span>{item.company} · {item.location || 'Location not listed'}</span><a href={item.job_url} target="_blank" rel="noreferrer">Open job posting <ExternalLink size={12} /></a></div>
+          <select aria-label={'Status for ' + item.title} value={item.status} onChange={(event) => updateApplicationStatus(item.id, event.target.value)}>
+            <option value="saved">Saved</option><option value="applied">Applied</option><option value="interview">Interview</option><option value="rejected">Rejected</option><option value="offer">Offer</option>
+          </select>
+        </article>)}</div> : <p className="muted">No jobs tracked yet. Use “Track job” on a job card below.</p>}
+      </section>}
+
       <section className="results-head"><div><div className="eyebrow">OPPORTUNITIES</div><h2>Recommended jobs</h2></div><button className="refresh" onClick={loadJobs} disabled={loading}><RefreshCw size={16} /> Refresh</button></section>
       <section className="jobs">{jobs.map((job) => (
         <article className="job" key={job.id}>
           <div className="job-top"><div className="company-icon"><BriefcaseBusiness size={20} /></div><span className="score">{job.match_score ?? '—'}{job.match_score !== undefined ? '% match' : 'DEMO'}</span></div>
           <h3>{job.title}</h3><div className="company">{job.company}</div><div className="location"><MapPin size={14} />{job.location}</div>
-          <p>{job.description}</p><a href={job.url} target="_blank" rel="noreferrer">View opportunity <ExternalLink size={14} /></a>
+          <p>{job.description}</p><a href={job.url} target="_blank" rel="noreferrer">View opportunity <ExternalLink size={14} /></a>{user && <button className="track-button" onClick={() => trackJob(job)}><Save size={14} /> Track job</button>}
         </article>
       ))}</section>
       <footer>JobPilot AI · Demo listings are sample data. Resume uploads are private to the signed-in account. Live job integrations will use sources that permit access.</footer>
