@@ -12,7 +12,7 @@ A job-search assistant for organizing job preferences, discovering opportunities
 - PDF/DOCX text extraction and keyword-based skill detection
 - Resume-to-demo-job matching with match scores
 - SQLAlchemy database models; SQLite local setup and PostgreSQL support
-- React dashboard for account creation, login, profile editing, job preferences, resume upload, skill analysis, and job matches
+- React dashboard for account creation, login, profile editing, job preferences, resume upload, skill analysis, job matches, and a user-specific application tracker
 
 **Important limitations:** Job listings are sample/demo data, not live vacancies. Resume skill extraction currently works with selectable-text PDF and DOCX files. Scanned-image PDFs need OCR, and legacy .doc files must be converted to PDF or DOCX for analysis. The matching logic is keyword-based, not an AI model.
 
@@ -62,6 +62,9 @@ Register, sign in, upload a PDF or DOCX resume, then click **Analyze & match job
 - `GET /api/v1/auth/me` — current user (Bearer token required)
 - `GET /api/v1/profile` and `PATCH /api/v1/profile` — view/update your profile (Bearer token required)
 - `GET /api/v1/preferences` and `PUT /api/v1/preferences` — view/save your job preferences (Bearer token required)
+- `GET /api/v1/applications/` — list your tracked jobs (Bearer token required)
+- `POST /api/v1/applications/` — add a job to your tracker (Bearer token required)
+- `PATCH /api/v1/applications/{id}` — update status/notes (Bearer token required)
 - `POST /api/v1/resumes/upload` — upload resume (Bearer token required)
 - `GET /api/v1/resumes/` — list your resumes (Bearer token required)
 - `POST /api/v1/resumes/{resume_id}/analyze` — extract skills and rank demo jobs (Bearer token required)
